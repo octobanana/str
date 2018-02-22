@@ -25,12 +25,14 @@
 #ifndef STR_H
 #define STR_H
 
+#include <stddef.h>
+
 // str object
 typedef struct str_t
 {
   char *str; // string
-  int len; // length
-  int cap; // capacity
+  size_t len; // length
+  size_t cap; // capacity
 } str_t;
 
 // str new
@@ -42,18 +44,18 @@ void str_delete(str_t *str);
 // str functions
 int str_set(str_t *str1, str_t *str2);
 int str_move(str_t *str1, str_t *str2);
-int str_reserve(str_t *str, int len);
+int str_reserve(str_t *str, size_t len);
 int str_append(str_t *str1, str_t *str2);
-int str_insert(str_t *str, char *s, int i, int len);
+int str_insert(str_t *str, char *s, size_t i, size_t len);
 int str_compare(str_t *str1, str_t *str2);
-int str_resize(str_t *str, int len);
-int str_erase(str_t *str, int index, int len);
+int str_resize(str_t *str, size_t len);
+int str_erase(str_t *str, size_t index, size_t len);
 int str_clear(str_t *str);
 int str_escape(str_t *str);
 
 // str c functions
-int str_cset(str_t *str, char *s, int len);
-int str_cappend(str_t *str, char *s, int len);
-int str_ccompare(str_t *str, char *s, int len);
+int str_cset(str_t *str, char *s, size_t len);
+int str_cappend(str_t *str, char *s, size_t len);
+int str_ccompare(str_t *str, char *s, size_t len);
 
 #endif

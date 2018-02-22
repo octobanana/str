@@ -59,7 +59,7 @@ int str_move(str_t *str1, str_t *str2)
   return 0;
 }
 
-int str_reserve(str_t *str, int len)
+int str_reserve(str_t *str, size_t len)
 {
   char *tmp = realloc(str->str, sizeof(char) * (len + str->len + 1));
   if (tmp == NULL)
@@ -90,12 +90,11 @@ int str_append(str_t *str1, str_t *str2)
   while ((*dest++ = *s_ptr++));
 
   str1->len += str2->len;
-  return str2->len;
+  return 0;
 }
 
-int str_insert(str_t *str, char *s, int i, int len)
+int str_insert(str_t *str, char *s, size_t i, size_t len)
 {
-  if (i < 0) return -1;
   if (i >= str->len) return -1;
 
   str_t strf;
@@ -144,9 +143,8 @@ int str_compare(str_t *str1, str_t *str2)
   return *s1 - *s2;
 }
 
-int str_resize(str_t *str, int len)
+int str_resize(str_t *str, size_t len)
 {
-  if (len < 0) len = 0;
   char *tmp = realloc(str->str, (sizeof(char) * (len + 1)));
   if (tmp == NULL)
   {
@@ -163,9 +161,8 @@ int str_resize(str_t *str, int len)
   return 0;
 }
 
-int str_erase(str_t *str, int index, int len)
+int str_erase(str_t *str, size_t index, size_t len)
 {
-  if (index < 0) return -1;
   if (index > str->len) return -1;
   if (index + len > str->len) return -1;
 
@@ -193,7 +190,7 @@ int str_escape(str_t *str)
   char *tok_start = str->str;
   int count = 0;
 
-  for (int i = 0; i <= str->len; ++i)
+  for (size_t i = 0; i <= str->len; ++i)
   {
     switch(tok[i])
     {
@@ -249,16 +246,16 @@ int str_escape(str_t *str)
     return -1;
 }
 
-int str_cset(str_t *str, char *s, int len)
+int str_cset(str_t *str, char *s, size_t len)
 {
   if (str_clear(str) == -1) return -1;
   if (str_cappend(str, s, len) == -1) return -1;
   return 0;
 }
 
-int str_cappend(str_t *str, char *s, int len)
+int str_cappend(str_t *str, char *s, size_t len)
 {
-  int s_len = 0;
+  size_t s_len = 0;
   {
     char *p = s;
     while (*p)
@@ -280,7 +277,7 @@ int str_cappend(str_t *str, char *s, int len)
     str->cap = str->len + len + 1;
   }
 
-  int count = 0;
+  size_t count = 0;
   {
     char *dest = str->str;
     char *s_ptr = s;
@@ -296,12 +293,12 @@ int str_cappend(str_t *str, char *s, int len)
   str->len += len;
   str->str[str->len] = '\0';
 
-  return count;
+  return 0;
 }
 
-int str_ccompare(str_t *str, char *s, int len)
+int str_ccompare(str_t *str, char *s, size_t len)
 {
-  int count = 0;
+  size_t count = 0;
   char *s1 = str->str;
   char *s2 = s;
   while (*s1 && (*s1 == *s2) && (++count < len))

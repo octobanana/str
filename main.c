@@ -30,8 +30,8 @@ void print_title(const char *title)
 void print_str(str_t *str)
 {
   printf("str: %s\n", str->str);
-  printf("len: %d\n", str->len);
-  printf("cap: %d\n", str->cap);
+  printf("len: %ld\n", str->len);
+  printf("cap: %ld\n", str->cap);
 }
 
 void test_new()
