@@ -42,10 +42,7 @@ int str_new(str_t *str)
 
 void str_delete(str_t *str)
 {
-  if (str->str != NULL)
-  {
-    free(str->str);
-  }
+  free(str->str);
 }
 
 int str_set(str_t *str1, str_t *str2)
@@ -57,19 +54,14 @@ int str_set(str_t *str1, str_t *str2)
 
 int str_move(str_t *str1, str_t *str2)
 {
-  if (str1->str != NULL)
-  {
-    free(str1->str);
-  }
-  str1->str = str2->str;
-  str1->len = str2->len;
-  str1->cap = str2->cap;
+  str_delete(str1);
+  *str1 = *str2;
   return 0;
 }
 
 int str_reserve(str_t *str, int len)
 {
-  char *tmp = realloc(str->str, (sizeof(char) * (len + str->len + 1)));
+  char *tmp = realloc(str->str, sizeof(char) * (len + str->len + 1));
   if (tmp == NULL)
   {
     return -1;
@@ -92,31 +84,30 @@ int str_append(str_t *str1, str_t *str2)
     str1->cap = str1->len + str2->len + 1;
   }
 
-  int count = 0;
-  {
-    char *dest = str1->str;
-    char *s_ptr = str2->str;
-    dest += str1->len;
-    while ((*dest++ = *s_ptr++) && ++count < str2->len);
-    *dest = '\0';
-  }
+  char *dest = str1->str;
+  char *s_ptr = str2->str;
+  dest += str1->len;
+  while ((*dest++ = *s_ptr++));
 
   str1->len += str2->len;
-  return count;
+  return str2->len;
 }
 
-int str_insert(str_t *str, int i, char *s, int len)
+int str_insert(str_t *str, char *s, int i, int len)
 {
   if (i < 0) return -1;
-  if (i > str->len) return -1;
+  if (i >= str->len) return -1;
+
+  str_t strf;
   if (i == 0)
   {
-    str_t strf;
-    if (str_new(&strf) == -1) return -1;
-    if (str_reserve(&strf, str->len + len) == -1) return -1;
-    if (str_cappend(&strf, s, len) == -1) return -1;
-    if (str_cappend(&strf, str->str, str->len) == -1) return -1;
-    if (str_move(str, &strf) == -1) return -1;
+    if (str_new(&strf) == -1) goto err;
+    if (str_reserve(&strf, str->len + len) == -1) goto err;
+
+    if (str_cappend(&strf, s, len) == -1) goto err;
+    if (str_cappend(&strf, str->str, str->len) == -1) goto err;
+
+    if (str_move(str, &strf) == -1) goto err;
   }
   else if (i == str->len)
   {
@@ -124,26 +115,32 @@ int str_insert(str_t *str, int i, char *s, int len)
   }
   else
   {
-    str_t strf;
-    if (str_new(&strf) == -1) return -1;
-    if (str_reserve(&strf, str->len + len) == -1) return -1;
+    if (str_new(&strf) == -1) goto err;
+    if (str_reserve(&strf, str->len + len) == -1) goto err;
 
-    int s_len = str->len;
+    if (str_cappend(&strf, str->str, i) == -1) goto err;
+    if (str_cappend(&strf, s, len) == -1) goto err;
+    if (str_cappend(&strf, str->str + i, str->len - i) == -1) goto err;
 
-    if (str_cappend(&strf, str->str, i) == -1) return -1;
-    if (str_cappend(&strf, s, len) == -1) return -1;
-    if (str_cappend(&strf, str->str + i, s_len - i) == -1) return -1;
-    if (str_move(str, &strf) == -1) return -1;
+    if (str_move(str, &strf) == -1) goto err;
   }
 
   return 0;
+
+err:
+  str_delete(&strf);
+  return -1;
 }
 
 int str_compare(str_t *str1, str_t *str2)
 {
   char *s1 = str1->str;
   char *s2 = str2->str;
-  while (*s1 && (*s1++ == *s2++));
+  while (*s1 && (*s1 == *s2))
+  {
+    s1++;
+    s2++;
+  }
   return *s1 - *s2;
 }
 
@@ -160,7 +157,7 @@ int str_resize(str_t *str, int len)
   if (str->len > len)
   {
     str->len = len;
-    str->str[str->len + 1] = '\0';
+    str->str[str->len] = '\0';
   }
   str->str[str->cap - 1] = '\0';
   return 0;
@@ -172,74 +169,84 @@ int str_erase(str_t *str, int index, int len)
   if (index > str->len) return -1;
   if (index + len > str->len) return -1;
 
-  int i = 0;
   char *s = str->str + index;
   char *p = str->str + index + len;
-  while ((*s++ = *p++) && (++i < len));
-  *s = '\0';
+  while ((*s++ = *p++));
   str->len -= len;
-  return i;
+  return str->len;
 }
 
 int str_clear(str_t *str)
 {
-  str->str[0] = '\0';
+  *str->str = '\0';
   str->len = 0;
   return 0;
 }
 
 int str_escape(str_t *str)
 {
-  str_t strf;
-  if (str_new(&strf) == -1) return -1;
-  if (str_reserve(&strf, str->len) == -1) return -1;
+  str_t tmp;
+  if (str_new(&tmp) == -1) goto err;
+  if (str_reserve(&tmp, str->len + 64) == -1) goto err;
+
   char *tok = str->str;
-  char *tok_start = tok;
+  char *tok_start = str->str;
   int count = 0;
+
   for (int i = 0; i <= str->len; ++i)
   {
-    if (tok[i] == '\n')
+    switch(tok[i])
     {
-      if (str_cappend(&strf, tok_start, &tok[i] - tok_start) == -1) return -1;
-      if (str_cappend(&strf, "\\n", 2) == -1) return -1;
+    case '\n':
+      if (str_cappend(&tmp, tok_start, &tok[i] - tok_start) == -1) goto err;
+      if (str_cappend(&tmp, "\\n", 2) == -1) goto err;
       tok_start = &tok[i] + 1;
       ++count;
-    }
-    else if (tok[i] == '\t')
-    {
-      if (str_cappend(&strf, tok_start, &tok[i] - tok_start) == -1) return -1;
-      if (str_cappend(&strf, "\\t", 2) == -1) return -1;
+      break;
+
+    case '\t':
+      if (str_cappend(&tmp, tok_start, &tok[i] - tok_start) == -1) goto err;
+      if (str_cappend(&tmp, "\\t", 2) == -1) goto err;
       tok_start = &tok[i] + 1;
       ++count;
-    }
-    else if (tok[i] == '\r')
-    {
-      if (str_cappend(&strf, tok_start, &tok[i] - tok_start) == -1) return -1;
-      if (str_cappend(&strf, "\\r", 2) == -1) return -1;
+      break;
+
+    case '\r':
+      if (str_cappend(&tmp, tok_start, &tok[i] - tok_start) == -1) goto err;
+      if (str_cappend(&tmp, "\\r", 2) == -1) goto err;
       tok_start = &tok[i] + 1;
       ++count;
-    }
-    else if (tok[i] == '\'')
-    {
-      if (str_cappend(&strf, tok_start, &tok[i] - tok_start) == -1) return -1;
-      if (str_cappend(&strf, "\\\'", 2) == -1) return -1;
+      break;
+
+    case '\'':
+      if (str_cappend(&tmp, tok_start, &tok[i] - tok_start) == -1) goto err;
+      if (str_cappend(&tmp, "\\\'", 2) == -1) goto err;
       tok_start = &tok[i] + 1;
       ++count;
-    }
-    else if (tok[i] == '\"')
-    {
-      if (str_cappend(&strf, tok_start, &tok[i] - tok_start) == -1) return -1;
-      if (str_cappend(&strf, "\\\"", 2) == -1) return -1;
+      break;
+
+    case '\"':
+      if (str_cappend(&tmp, tok_start, &tok[i] - tok_start) == -1) goto err;
+      if (str_cappend(&tmp, "\\\"", 2) == -1) goto err;
       tok_start = &tok[i] + 1;
       ++count;
-    }
-    else if (tok[i] == '\0')
-    {
-      if (str_cappend(&strf, tok_start, &tok[i] - tok_start) == -1) return -1;
+      break;
+
+    case '\0':
+      if (str_cappend(&tmp, tok_start, 1) == -1) goto err;
+      break;
+
+    default:
+      break;
     }
   }
-  if (str_move(str, &strf) == -1) return -1;
+
+  if (str_move(str, &tmp) == -1) goto err;
   return count;
+
+  err:
+    str_delete(&tmp);
+    return -1;
 }
 
 int str_cset(str_t *str, char *s, int len)
@@ -254,14 +261,14 @@ int str_cappend(str_t *str, char *s, int len)
   int s_len = 0;
   {
     char *p = s;
-    while (*p && s_len < len)
+    while (*p)
     {
       p++;
       s_len++;
     }
   }
+  if (s_len < len) return -1;
 
-  if (s_len < len) len = s_len;
   if (str->len + len + 1 > str->cap)
   {
     char *tmp = realloc(str->str, sizeof(char) * (str->len + len + 1));
@@ -278,11 +285,17 @@ int str_cappend(str_t *str, char *s, int len)
     char *dest = str->str;
     char *s_ptr = s;
     dest += str->len;
-    while ((*dest++ = *s_ptr++) && ++count < len);
-    *dest = '\0';
+    while ((count < len) && (*dest = *s_ptr))
+    {
+      dest++;
+      s_ptr++;
+      count++;
+    }
   }
 
   str->len += len;
+  str->str[str->len] = '\0';
+
   return count;
 }
 
@@ -291,6 +304,10 @@ int str_ccompare(str_t *str, char *s, int len)
   int count = 0;
   char *s1 = str->str;
   char *s2 = s;
-  while (*s1 && (*s1++ == *s2++) && (++count < len));
+  while (*s1 && (*s1 == *s2) && (++count < len))
+  {
+    s1++;
+    s2++;
+  }
   return *s1 - *s2;
 }

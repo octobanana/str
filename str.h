@@ -44,7 +44,7 @@ int str_set(str_t *str1, str_t *str2);
 int str_move(str_t *str1, str_t *str2);
 int str_reserve(str_t *str, int len);
 int str_append(str_t *str1, str_t *str2);
-int str_insert(str_t *str, int i, char *s, int len);
+int str_insert(str_t *str, char *s, int i, int len);
 int str_compare(str_t *str1, str_t *str2);
 int str_resize(str_t *str, int len);
 int str_erase(str_t *str, int index, int len);
